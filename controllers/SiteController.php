@@ -9,6 +9,9 @@ use yii\web\Response;
 use yii\filters\VerbFilter;
 use app\models\LoginForm;
 use app\models\ContactForm;
+use app\models\Book_group;
+use app\models\Book;
+use yii\data\Pagination;
 
 class SiteController extends Controller
 {
@@ -61,7 +64,22 @@ class SiteController extends Controller
      */
     public function actionIndex()
     {
-        return $this->render('index');
+        $query = Book::find();
+
+        $pagination = new Pagination([
+            'defaultPageSize' => 10,
+            'totalCount' => $query->count(),
+        ]);
+
+        $books = $query->orderBy('book_name')
+            ->offset($pagination->offset)
+            ->limit($pagination->limit)
+            ->all();
+
+        return $this->render('index', [
+            'books' => $books,
+            'pagination' => $pagination,
+        ]);
     }
 
     /**
@@ -125,4 +143,37 @@ class SiteController extends Controller
     {
         return $this->render('about');
     }
+
+    public function actionAuthors()
+    {
+        /*$authors = author::find()
+            ->select('name','COUNT(book_name)')
+            ->leftJoin('book', '`book`.`author_name` = `author`.`name`')
+            ->groupBy('author_name')
+            ->all();*/
+
+        Yii::$app->db->createCommand('CREATE OR REPLACE VIEW book_group AS SELECT name, COUNT(book_name) as book_count FROM author JOIN book ON name=author_name GROUP BY author_name')
+            ->execute();
+
+        $query = Book_group::find();
+
+        $pagination = new Pagination([
+            'defaultPageSize' => 10,
+            'totalCount' => $query->count(),
+        ]);
+
+        $authors = $query->orderBy('name')
+            ->offset($pagination->offset)
+            ->limit($pagination->limit)
+            ->all();
+
+        return $this->render('authors', [
+            'authors' => $authors,
+            'pagination' => $pagination,
+        ]);
+    }
+
+
+
+
 }
